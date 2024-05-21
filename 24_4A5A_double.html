@@ -1,0 +1,152 @@
+<!DOCTYPE html>  
+<html>  
+<head>  
+    <title>景区数量柱状图</title>  
+    <style>  
+       .bar.fourA {  
+            fill: steelblue; 
+        }  
+        .bar.fiveA {  
+            fill: orange;   
+        }  
+        .axis text {  
+            font: 10px sans-serif;  
+        }  
+        .title {  
+            font: 25px sans-serif; 
+            color: red; 
+            text-anchor: middle;   
+        }  
+        body, html {  
+            height: 100%;  
+            margin: 0;  
+            display: flex;  
+            align-items: center;  
+            justify-content: center;  
+        }  
+        .label {    
+            font: 9px sans-serif;  
+            font-weight: bold;   
+            text-anchor: middle;    
+        }   
+        
+    </style>  
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+</head>  
+<body> 
+    <svg width="1600" height="600"></svg>   
+</body>
+ 
+    <script>  
+        d3.json("景点合集.json").then(function(data) {  
+            let provinceData = {};  
+            data.forEach(item => {  
+                if (!provinceData[item.省份]) {  
+                    provinceData[item.省份] = { '4A': 0, '5A': 0 };  
+                }  
+                if (item.景区类型 === '4A景区') {  
+                    provinceData[item.省份]['4A']++;  
+                } else if (item.景区类型 === '5A景区') {  
+                    provinceData[item.省份]['5A']++;  
+                }  
+            });  
+            let provinces = Object.keys(provinceData).map(province => {  
+                return {  
+                    name: province,  
+                    fourA: provinceData[province]['4A'],  
+                    fiveA: provinceData[province]['5A']  
+                };  
+            });  
+            const svg = d3.select('svg');  
+            const margin = { top: 0, right: 20, bottom: 30, left: 60 };
+            const width = svg.attr('width') - margin.left - margin.right;  
+            const height = svg.attr('height') - margin.top - margin.bottom;  
+            const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);  
+            const x0 = d3.scaleBand()  
+                .range([0, width])  
+                .domain(provinces.map(d => d.name))  
+                .padding(0.1);  
+            const x1 = d3.scaleBand()  
+                .domain(["4A", "5A"])  
+                .range([0, x0.bandwidth()])  
+                .padding(0.1);    
+            const legendWidth = 100;  
+            const legendHeight = 50; 
+            const legendPadding = 10; 
+            svg.append('text')  
+                .attr('class', 'title') 
+                .attr('x', svg.attr('width') / 2) 
+                .attr('y', 20) 
+                .attr('fill', 'red') 
+                .text('全国各省4A5A景区数目双柱状图')  
+                .attr('text-anchor', 'middle'); 
+            svg.append('g')  
+                .attr('transform', `translate(${margin.left},${height + margin.top})`)  
+                .call(d3.axisBottom(x0));  
+            const y = d3.scaleLinear()  
+                .domain([0, d3.max(provinces, d => Math.max(d.fourA, d.fiveA))])  
+                .range([height, 0]);  
+            svg.append('g')  
+                .attr('transform', `translate(${margin.left},0)`)  
+                .call(d3.axisLeft(y));  
+            g.selectAll('.bar.fourA')  
+                .data(provinces)  
+                .enter().append('rect')  
+                .attr('class', 'bar fourA')  
+                .attr('x', d => x0(d.name) + x1("4A"))  
+                .attr('y', d => y(d.fourA))  
+                .attr('width', x1.bandwidth())  
+                .attr('height', d => y(0) - y(d.fourA)); 
+            g.selectAll('.bar.fiveA')  
+                .data(provinces)  
+                .enter().append('rect')  
+                .attr('class', 'bar fiveA')  
+                .attr('x', d => x0(d.name) + x1("5A"))  
+                .attr('y', d => y(d.fiveA))  
+                .attr('width', x1.bandwidth())  
+                .attr('height', d => y(0) - y(d.fiveA)); 
+            svg.append('rect')  
+                .attr('x', width - legendWidth - legendPadding)  
+                .attr('y', legendPadding)  
+                .attr('width', legendWidth / 2 - legendPadding)  
+                .attr('height', legendHeight / 2 - legendPadding)  
+                .attr('fill', 'orange') 
+                .attr('class', 'legend-rect fiveA');  
+            svg.append('text')  
+                .attr('x', width - legendWidth / 2 - legendPadding)  
+                .attr('y', legendHeight / 1.7 - legendPadding)  
+                .text('5A')  
+                .attr('fill', 'black')  
+                .attr('text-anchor', 'middle')  
+                .attr('alignment-baseline', 'middle');   
+            svg.append('rect')  
+                .attr('x', width - legendWidth - legendPadding)  
+                .attr('y', legendHeight / 2 + legendPadding)  
+                .attr('width', legendWidth / 2 - legendPadding)  
+                .attr('height', legendHeight / 2 - legendPadding)  
+                .attr('fill', 'steelblue') 
+                .attr('class', 'legend-rect fourA');  
+            svg.append('text')  
+                .attr('x', width - legendWidth / 2 - legendPadding)  
+                .attr('y', 3 * legendHeight / 2.8 - legendPadding)  
+                .text('4A')  
+                .attr('fill', 'black')  
+                .attr('text-anchor', 'middle')  
+                .attr('alignment-baseline', 'middle');  
+            g.selectAll('.label.fourA')  
+                .data(provinces)  
+                .enter().append('text')  
+                .attr('class', 'label fourA')  
+                .attr('x', d => x0(d.name) + x1("4A") + x1.bandwidth() / 2) 
+                .attr('y', d => y(d.fourA) +9) 
+                .text(d => d.fourA);  
+            g.selectAll('.label.fiveA')  
+                .data(provinces)  
+                .enter().append('text')  
+                .attr('class', 'label fiveA')  
+                .attr('x', d => x0(d.name) + x1("5A") + x1.bandwidth() / 2) 
+                .attr('y', d => y(d.fiveA) +9) 
+                .text(d => d.fiveA);  
+            });  
+    </script>    
+</html>

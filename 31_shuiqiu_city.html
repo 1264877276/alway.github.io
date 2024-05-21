@@ -1,0 +1,164 @@
+<!DOCTYPE html>  
+<html>  
+<head>  
+    <meta charset="utf-8">  
+    <title>上海景点气泡图</title>  
+    <script src="https://d3js.org/d3.v7.min.js"></script>  
+    <style>  
+        body {  
+            display: flex;  
+            justify-content: center;  
+            align-items: center;  
+            height: 100vh;  
+            margin: 0;  
+            padding: 0;  
+            box-sizing: border-box;  
+        }  
+        svg {  
+            border: 1px solid #ccc;
+        }  
+        .bubble {  
+            fill: #999;  
+            stroke: #fff;  
+            stroke-width: 1px;  
+            opacity: 0.7;
+        }  
+        .label {  
+            font-size: 12px;  
+            text-anchor: middle;  
+        }  
+        .chart-title {  
+            position: absolute;  
+            top: 100px;  
+            left: 50%;  
+            transform: translateX(-50%); 
+            color: red;  
+            font-size: 40px;  
+            text-align: center;  
+            margin: 0;  
+            z-index: 10; 
+        }  
+    </style>  
+</head>  
+<body>  
+    <div class="chart-title">城市前十五景点气泡图</div>  
+    <input type="text" id="cityInput" placeholder="输入城市名称" />  
+    <button onclick="updateChart()">切换城市</button>  
+    <svg width="1600" height="700"></svg>     
+    <script>  
+        var svg = d3.select('svg');  
+        var width = +svg.attr('width'); 
+        var margin = { left: 150, right: 50, top: 200, bottom: 80 }; 
+        var chartWidth = width - margin.left - margin.right; 
+        var height = +svg.attr('height');  
+        var pack = d3.pack()  
+            .size([width, height])  
+            .padding(1.5);  
+        function updateChart() {  
+            var cityInput = document.getElementById('cityInput');  
+            var cityName = cityInput.value.trim();  
+            if (cityName) {  
+                svg.selectAll('.bubble').remove();  
+                svg.selectAll('.label').remove();  
+                svg.selectAll('.x-axis').remove();  
+                svg.selectAll('.y-axis').remove(); 
+                d3.json('城市景点详细数据.json').then(function(data) {  
+                    var shanghaiData = data.filter(function(d) {    
+                        return d.城市 === cityName;  
+                    }); 
+                    shanghaiData.forEach(function(d) {  
+                        d.星级数值 = parseInt(d.星级, 10);  
+                    });  
+                    shanghaiData.sort(function(a, b) {  
+                        return b.销量 - a.销量;
+                    });  
+                    shanghaiData = shanghaiData.slice(0, 15); 
+                    var colorScale = d3.scaleOrdinal()  
+                        .domain(shanghaiData.map(function(d) { return d.名称; })) 
+                        .range(d3.schemeCategory10); 
+                    var root = d3.hierarchy({ children: shanghaiData })   
+                    var nodes = pack(root).leaves();  
+                    nodes.sort(function(b, a) {  
+                        return a.data.评分 - b.data.评分;  
+                    }); 
+                    var baseColorScale = d3.scaleOrdinal(d3.schemeCategory10);   
+                    var xScale = d3.scaleLinear()  
+                        .domain(d3.extent(shanghaiData, function(d) { return d.销量; }))  
+                        .range([margin.left, chartWidth - margin.right]);  
+                    var xAxis = d3.axisBottom(xScale)  
+                        .ticks(5); 
+                        var yScale = d3.scaleLinear()  
+                        .domain(d3.extent(shanghaiData, function(d) { return d.价格; }))  
+                        .range([height - margin.bottom, margin.top]);  
+                    var yAxis = d3.axisLeft(yScale);  
+                    svg.append('g')  
+                        .attr('class', 'x-axis')  
+                        .attr('transform', 'translate(0,' + (height - margin.bottom) + ')')  
+                        .call(d3.axisBottom(xScale)); 
+                    svg.append('g')  
+                        .attr('class', 'y-axis')  
+                        .attr('transform', 'translate(' + margin.left + ',0)')  
+                        .call(d3.axisLeft(yScale));
+                    var radiusScale = d3.scaleSqrt()  
+                        .domain(d3.extent(shanghaiData, function(d) { return d.评分; }))  
+                        .range([30, 100]);  
+                    var bubbles = svg.selectAll('.bubble')  
+                        .data(nodes)  
+                        .enter().append('circle')  
+                        .attr('class', 'bubble')  
+                        .attr('cx', function(d) {  
+                            return xScale(d.data.销量);  
+                        })  
+                        .attr('cy', function(d) {  
+                            return yScale(d.data.价格);  
+                        })  
+                        .attr('r', function(d) {  
+                            return radiusScale(d.data.评分);  
+                        })  
+                        .style('fill', function(d) {  
+                            return colorScale(d.data.名称);  
+                        });  
+                    var labels = svg.selectAll('.label')  
+                        .data(nodes)  
+                        .enter().append('text')  
+                        .attr('class', 'label')  
+                        .attr('x', function(d) {  
+                            return xScale(d.data.销量);  
+                        })  
+                        .attr('y', function(d) {  
+                            return yScale(d.data.价格);  
+                        })  
+                        .text(function(d) {  
+                            return d.data.名称;  
+                        })    
+                        .attr('dy', function(d) {  
+                            return  0+'px';   
+                        })  
+                        .style('text-anchor', 'middle')  
+                        .style('fill', 'black');  
+                    svg.append('text')  
+                        .attr('x', chartWidth -20)  
+                        .attr('y', height - margin.bottom + 10) 
+                        .style('text-anchor', 'middle') 
+                        .text('销量'); 
+                    svg.append('text')  
+                        .attr('transform', 'rotate(-90)') 
+                        .attr('x', -height / 2 + 180) 
+                        .attr('y', margin.left)
+                        .style('text-anchor', 'middle') 
+                        .text('价格');
+                    svg.append('text')  
+                        .attr('x', chartWidth) 
+                        .attr('y', 30) 
+                        .style('text-anchor', 'end')  
+                        .text('气泡大小依据：评分');  
+                }).catch(function(error) {  
+                    console.error('Error loading data:', error);  
+                });  
+            } else {  
+                lert('请输入有效的城市名称！');  
+            }  
+        }  
+    </script>  
+</body>  
+</html>

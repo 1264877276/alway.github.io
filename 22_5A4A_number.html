@@ -1,0 +1,109 @@
+<!DOCTYPE html>    
+<html lang="en">    
+<head>    
+    <meta charset="UTF-8">    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    
+    <title>D3 Pie Chart</title>    
+    <script src="https://d3js.org/d3.v7.min.js"></script>   
+    <style>      
+        body {      
+            display: flex;      
+            justify-content: center;      
+            align-items: center;      
+            height: 100vh;   
+            margin: 0;     
+            overflow: hidden;   
+        }      
+        .pie-label {  
+            font-family: sans-serif;  
+            font-size: 12px;  
+            text-anchor: middle;  
+        }  
+        .pie-label-line {  
+            stroke: #000;  
+        }  
+        .pie-chart-title {  
+            font-family: sans-serif;  
+            font-size: 24px; 
+            fill: red;  
+            text-anchor: middle; 
+        }  
+    </style>     
+</head>    
+<body>    
+    <svg id="pieChart">  
+        <text x="50%" y="20" class="pie-chart-title">全国各省4A5A景区数占比图</text>  
+    </svg>   
+</body>   
+<script>    
+    d3.json("景点合集.json").then(function(data) {     
+    function outerArcMidpoint(d, radius) {  
+        const angle = (d.startAngle + d.endAngle) / 2;  
+        return [  
+            radius * Math.cos(angle),  
+            radius * Math.sin(angle)  
+        ];  
+    }  
+        const provinceCounts = {};    
+        data.forEach(item => {    
+            if (!provinceCounts[item.省份]) {    
+                provinceCounts[item.省份] = 0;    
+            }    
+            provinceCounts[item.省份]++;    
+        });    
+        const pieData = Object.entries(provinceCounts).map(([province, count]) => ({      
+            province,      
+            count      
+        }));
+        const totalCount = pieData.reduce((acc, curr) => acc + curr.count, 0);    
+        const pieDataWithProportions = pieData.map(d => ({  
+            province: d.province,  
+            count: d.count,  
+            proportion: d.count / totalCount 
+        }));  
+        const maxProportion = d3.max(pieDataWithProportions, d => d.proportion);  
+        const minNonZeroProportion = d3.min(pieDataWithProportions.filter(d => d.proportion > 0), d => d.proportion); 
+        const green = d3.hcl(120, 50, 60); 
+        const red = d3.hcl(0, 50, 60); 
+        const colorScale = d3.scaleSequential()  
+            .domain([minNonZeroProportion, maxProportion])  
+            .interpolator(t => d3.hcl(green.h + t * (red.h - green.h), green.c, green.l));
+            const width = 800, height = 800, radius = Math.min(width, height) / 3;    
+            const svg = d3.select("#pieChart")    
+                .attr("width", width)    
+                .attr("height", height)    
+                .append("g")    
+                .attr("transform", `translate(${width / 2},${height / 2})`);    
+            const pie = d3.pie().value(d => d.count);    
+            const arc = d3.arc()    
+                .outerRadius(radius - 10)    
+                .innerRadius(0)
+                .padAngle(0.005);    
+            svg.selectAll("path")    
+                .data(pie(pieData))    
+                .join("path")    
+                .attr("d", arc)       
+                .attr("fill", (d) => {  
+                    const proportion = d.data.count / totalCount;  
+                    return colorScale(proportion);  
+                });
+            const labels = svg.selectAll(".pie-label")  
+                .data(pie(pieData))  
+                .enter().append("g")  
+                .attr("class", "pie-label");  
+            labels.append("line")  
+                .attr("class", "pie-label-line")  
+                .attr("x1", d => arc.centroid(d)[0]) 
+                .attr("y1", d => arc.centroid(d)[1]) 
+                .attr("x2", d => outerArcMidpoint(d, radius+80 )[0]) 
+                .attr("y2", d => outerArcMidpoint(d, radius +40 )[1]); 
+            labels.append("text")  
+                .attr("dy", ".35em")  
+                .attr("x", d => outerArcMidpoint(d, radius+90 )[0])
+                .attr("y", d => outerArcMidpoint(d, radius +50)[1])  
+                            .attr("text-anchor", d => (d.endAngle - d.startAngle > Math.PI ? "end" : "start"))  
+                            .text(d => `${d.data.province}: ${(d.data.count / totalCount * 100).toFixed(2)}%`)
+                            .attr("class", "pie-label");    
+                            });    
+</script>    
+</html>

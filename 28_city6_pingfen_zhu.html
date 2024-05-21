@@ -1,0 +1,148 @@
+<!DOCTYPE html>      
+<html>      
+<head>      
+    <title>上海景区评分折线图</title>      
+    <style>       
+        .bar-label {     
+            text-anchor: end;  
+            fill: rgb(14, 14, 14); 
+            font-size: 18px; 
+        }  
+        #chart-container {  
+            position: absolute;  
+            top: 50%;  
+            left: 50%;  
+            transform: translate(-50%, -50%);  
+        }
+        html, body {  
+            height: 100%;  
+            margin: 0;  
+            padding: 0;  
+            display: flex;  
+            justify-content: center;  
+            align-items: center;  
+        }
+        .y.axis text {  
+            font-size: 18px; 
+        }
+        .x.axis text {  
+            font-size: 18px;  
+        }
+        .controls-container {  
+            position: relative; 
+            z-index: 9999; 
+            position: absolute;  
+            right: 20px;   
+            top: 70%;  
+            transform: translateY(-50%);
+        }  
+        .axis path,  
+        .axis path,  
+        .axis line {  
+            fill: none;  
+            stroke: black; 
+            shape-rendering: crispEdges;  
+        }  
+        .tick line {  
+            stroke: rgba(0, 0, 0, 0.2);  
+        }  
+        .axis text {  
+            font-family: sans-serif;  
+            font-size: 10px;  
+        }
+    </style>      
+    <script src="https://d3js.org/d3.v6.min.js"></script>      
+</head>      
+<body>      
+    <div class="controls-container">  
+        <p>请选择以下城市之一:（上海、北京、天津、重庆、香港、澳门）</p>  
+        <label for="city-input">请输入城市名:</label>  
+        <input type="text" id="city-input">  
+        <button id="update-button">更新图表</button>  
+    </div>
+    <div id="chart-container">  
+        <svg id="chart"></svg>  
+    </div>      
+</body>       
+<script>      
+document.getElementById('update-button').addEventListener('click', function() {  
+            const city = document.getElementById('city-input').value;  
+            updateChart(city);  
+        }); 
+    function updateChart(city) {  
+        d3.json("城市景点详细数据.json").then(function(data) {  
+            let cityData = data.filter(d => d["城市"] === city);  
+            let chartData = cityData.map(d => ({    
+                名称: d.名称,    
+                评分: d.评分    
+            }));      
+            chartData = chartData.slice(0, 15);    
+            const colorScale = d3.scaleSequential()      
+                .domain([0, d3.max(chartData, d => d.评分)])      
+                .interpolator(d3.interpolateBlues);     
+            const width = 1200; 
+            const height = 800; 
+            const margin = { top: 80, right: 80, bottom: 100, left: 50 };    
+            const svgRoot = d3.select("#chart");  
+            svgRoot.selectAll("*").remove();  
+            svgRoot.attr("width", width + margin.left + margin.right)    
+                .attr("height", height + margin.top + margin.bottom); 
+            const svg = svgRoot.append("g")     
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");  
+            svg.append("text")  
+                .attr("x", width / 2) 
+                .attr("y", -margin.top / 2+10) 
+                .attr("text-anchor", "middle")   
+                .attr("font-size", "40px") 
+                .attr("fill", "red") 
+                .text(city+"景点评分折线图");   
+            const x = d3.scaleBand()  
+                .range([0, width])  
+                .domain(chartData.map((d, i) => i)) 
+                .padding(0.1); 
+            const y = d3.scaleLinear() 
+                .domain([0, d3.max(chartData, d => d.评分)])  
+                .range([height, 0]); 
+            const line = d3.line()  
+                .x((d, i) => x(i) + x.bandwidth() / 2)  
+                .y(d => y(d.评分)) 
+                .curve(d3.curveMonotoneX);
+            svg.append("path")  
+                .datum(chartData)  
+                .attr("class", "line")  
+                .attr("d", line)  
+                .attr("fill", "none")  
+                .attr("stroke", "steelblue")  
+                .attr("stroke-width", 6);   
+            const xAxis = d3.axisBottom(x)  
+                .tickFormat((d, i) => chartData[i].名称)  
+                .tickSizeInner(-height)  
+                .tickSizeOuter(0);  
+            const yAxis = d3.axisLeft(y)
+                .tickSizeInner(-width)  
+                .tickSizeOuter(0);  
+            svg.append("g")  
+                .attr("class", "x axis")  
+                .attr("transform", "translate(0," + height + ")")  
+                .call(xAxis)  
+                .selectAll("text")  
+                .style("text-anchor", "end")  
+                .attr("dx", "1em")  
+                .attr("dy", "1em")  
+                .attr("transform", "rotate(-25)"); 
+            svg.append("g")  
+                .attr("class", "y axis")  
+                .call(yAxis);
+            svg.selectAll(".dot")  
+                .data(chartData)  
+                .enter().append("circle")  
+                .attr("class", "dot")  
+                .attr("r", 5)  
+                .attr("cx", (d, i) => x(i) + x.bandwidth() / 2) 
+                .attr("cy", d => y(d.评分))   
+                .attr("fill", "red"); 
+                    });     
+    }  
+    updateChart('上海'); 
+</script>      
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>    
+<html>    
+<head>    
+    <meta charset="utf-8">    
+    <script src="https://d3js.org/d3.v6.min.js"></script> 
+    <style>  
+        body {    
+            display: flex;    
+            justify-content: center;   
+            align-items: center;  
+            height: 100vh;   
+            margin: 0;  
+        }  
+        #funnelChart text.title {  
+            font-size: 35px;   
+            fill: red;  
+            text-anchor: middle; 
+        }  
+    </style>     
+</head>    
+<body>    
+    <svg id="funnelChart" width="2000" height="500">  
+        <text class="title" x="50%" y="30" text-anchor="middle">景区总销售额前九漏斗图</text>  
+    </svg>      
+</body>   
+    <script>    
+        d3.json("城市景点详细数据.json").then(function(data) {    
+            function mapDiffToAngle(diff, minAngle, maxAngle, index, dataLength) {    
+                if (index === 0) {  
+                    return minAngle + (maxAngle - minAngle) / 2-20; 
+                }  
+                if (index === 1) {  
+                    return minAngle + (maxAngle - minAngle) / 2-53; 
+                } 
+                if (index === 2) {  
+                    return minAngle + (maxAngle - minAngle) / 2-18; 
+                } 
+                if (index === 3) {  
+                    return minAngle + (maxAngle - minAngle) / 2-15; 
+                } 
+                if (index === 4) {  
+                    return minAngle + (maxAngle - minAngle) / 2+11; 
+                } 
+                if (index === 5) {  
+                    return minAngle + (maxAngle - minAngle) / 2+8; 
+                } 
+                if (index === 6) {  
+                    return minAngle + (maxAngle - minAngle) / 2-1; 
+                } 
+                if (index === 7) {  
+                    return minAngle + (maxAngle - minAngle) / 2; 
+                } 
+                var minDiff = 0;  
+                var maxDiff = d3.max(top10Cities, function(d) { return d.incomeDiff; });  
+                var angleRange = maxAngle - minAngle;  
+                var diffRange = maxDiff - minDiff;  
+                var angle = minAngle + (diff - minDiff) / diffRange * angleRange;  
+                return angle;  
+            }   
+            data.forEach(function(d, index) {  
+                d.totalIncome = d.价格 * d.销量;  
+                if (index > 0) {  
+                    d.incomeDiff = d.totalIncome - data[index - 1].totalIncome;  
+                } else {  
+                    d.incomeDiff = 0; 
+                }  
+            });   
+            data.sort(function(a, b) {    
+                return b.totalIncome - a.totalIncome;    
+            });        
+            var top10Cities = data.slice(0, 9);    
+            var svg = d3.select("#funnelChart");    
+            var width = +svg.attr("width"),    
+                height = +svg.attr("height"),    
+                margin = {top: 70, right: 20, bottom: 30, left: 40},    
+                innerWidth = width - margin.left - margin.right,    
+                innerHeight = height - margin.top - margin.bottom;    
+            var x = d3.scaleLinear()    
+                .domain([0, d3.max(top10Cities, function(d) { return d.totalIncome; })])    
+                .range([0, innerWidth / 2]);    
+            var y = d3.scaleBand()    
+                .domain(top10Cities.map(function(d) { return d.名称; }))    
+                .rangeRound([0, innerHeight])    
+                .padding(0.02);    
+            var g = svg.append("g")    
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");    
+            var colorScale = d3.scaleOrdinal()  
+                .domain(top10Cities.map(function(d) { return d.名称; })) 
+                .range(["rgb(216, 38, 38)", "rgb(36, 60, 138)", "rgb(63, 101, 227)", "rgb(178, 89, 89)","rgb(45, 195, 118)","rgb(193, 212, 49)","rgba(42, 40, 20, 0.648)","rgba(104, 103, 87, 0.648)","rgba(224, 222, 184, 0.648)"]); 
+            var legendWidth = 50; 
+            var legendX = margin.left; 
+            var legendY = function(i) { return y(top10Cities[i].名称) + y.bandwidth() / 2 - 10; }; 
+                function adjustWidthAndX(d, i, dataLength) {  
+                var maxWidth = innerWidth / 2;
+                var minWidth = maxWidth / 4; 
+                var adjustFactor = (maxWidth - minWidth) / (dataLength - 1);  
+                if(i === 0){
+                    adjustedWidth = maxWidth * 0.8955;
+                }
+                else if (i === 1) {    
+                    adjustedWidth = maxWidth * 0.8955 * 0.5337; 
+                }
+                else if(i === 2) {    
+                    adjustedWidth = maxWidth * 0.8955 * 0.5337 * 0.8777; 
+                }
+                else if(i === 3) {    
+                    adjustedWidth = maxWidth * 0.8955 * 0.5337 * 0.8777 * 0.8776; 
+                }
+                else if(i === 4) {    
+                    adjustedWidth = maxWidth * 0.8955 * 0.5337 * 0.8777 * 0.8776 * 0.9986*0.955; 
+                }
+                else if(i === 5) {    
+                    adjustedWidth = maxWidth * 0.8955 * 0.5337 * 0.8777 * 0.8776 * 0.9986 * 0.9862*0.955*0.955; 
+                }
+                else if(i === 6) {    
+                    adjustedWidth = maxWidth * 0.8955 * 0.5337 * 0.8777 * 0.8776 * 0.9986 * 0.9862 * 0.9634*0.955*0.9; 
+                }
+                else if(i === 7) {    
+                    adjustedWidth = maxWidth * 0.8955 * 0.5337 * 0.8777 * 0.8776 * 0.9986 * 0.9862 * 0.9634 * 0.8131*0.955; 
+                }
+                else if(i === 8) {    
+                    adjustedWidth = 5; 
+                }
+                else {  
+                    var adjustedWidth = maxWidth - (i * adjustFactor);    
+                    adjustedWidth = Math.max(minWidth, adjustedWidth);   
+                }  
+                adjustedWidth = Math.max(minWidth, adjustedWidth); 
+                var adjustedX = (innerWidth / 2) - (adjustedWidth / 2);  
+                return { x: adjustedX, width: adjustedWidth };  
+            }   
+            g.selectAll(".bar")  
+                .data(top10Cities)  
+                .enter().append("polygon") 
+                .attr("class", "bar")  
+                .attr("points", function(d, i) {    
+                    var skewAngle = mapDiffToAngle(d.incomeDiff, -60, 0, i, top10Cities.length); 
+                    var skewAngleRad = skewAngle * (Math.PI / 180);  
+                    var adjustments = adjustWidthAndX(d, i, top10Cities.length);  
+                    var centerX = adjustments.x + adjustments.width / 2;  
+                    var centerY = y(d.名称) + y.bandwidth() / 2;  
+                    var leftX = centerX - adjustments.width / 2;  
+                    var rightX = centerX + adjustments.width / 2;  
+                    if (i === 8) { 
+                        var topY = centerY - y.bandwidth() / 2;  
+                        var bottomY = centerY + y.bandwidth() / 2;  
+                        var leftTopX = centerX - adjustments.width / 2-10; 
+                        var rightTopX = centerX + adjustments.width / 2+10; 
+                        return [  
+                            leftTopX + ',' + topY,     
+                            rightTopX + ',' + topY,     
+                            centerX + ',' + bottomY  
+                        ].join(' ');  
+                    } else {
+                        var topY = centerY - y.bandwidth() / 2;  
+                        var bottomY = centerY + y.bandwidth() / 2;  
+                        var skewDeltaX = Math.tan(skewAngleRad) * (y.bandwidth() / 2);  
+                        var leftTopX = leftX + skewDeltaX;  
+                        var rightTopX = rightX - skewDeltaX;  
+                        return [  
+                            leftTopX + ',' + topY,   
+                            rightTopX + ',' + topY,   
+                            rightX + ',' + bottomY,   
+                            leftX + ',' + bottomY    
+                        ].join(' ');  
+                    }
+                })  
+                .attr("fill", function(d) { return colorScale(d.名称); })
+                .on("mouseover", function(d, i, nodes) {  
+                    d3.select(this).attr("fill", "orange");   
+                })    
+                .on("mouseout", function(d) {    
+                    d3.select(this).attr("fill", function(d) { return colorScale(d.名称); }); 
+                }); 
+                g.selectAll(".bar-label")  
+                    .data(top10Cities)  
+                    .enter().append("text")  
+                    .attr("class", "bar-label")  
+                    .attr("x", function(d, i) {  
+                        var adjustments = adjustWidthAndX(d, i, top10Cities.length);  
+                        return adjustments.x + adjustments.width / 2;  
+                    })  
+                    .attr("y", function(d) {  
+                        return y(d.名称) + y.bandwidth() / 2 + 5;
+                    })  
+                    .attr("text-anchor", "middle") 
+                    .attr("fill", "white") 
+                    .text(function(d) {   
+                        return d.名称;  
+                    });  
+                g.selectAll(".legend-rect")  
+                    .data(top10Cities)  
+                    .enter().append("rect")  
+                    .attr("class", "legend-rect")  
+                    .attr("x", legendX)  
+                    .attr("y", function(d, i) { return legendY(i); })  
+                    .attr("width", 10) 
+                    .attr("height", 10) 
+                    .attr("fill", function(d) { return colorScale(d.名称); });  
+                g.selectAll(".legend-text")  
+                    .data(top10Cities)  
+                    .enter().append("text")  
+                    .attr("class", "legend-text")  
+                    .attr("x", legendX + 15) 
+                    .attr("y", function(d, i) { return legendY(i) +10; })
+                    .attr("text-anchor", "start") 
+                    .attr("fill", "black")  
+                    .text(function(d) { return d.名称+"¥" + d.totalIncome.toLocaleString(); });  
+                })
+    </script>     
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>        
+<html>         
+    <head>         
+        <meta charset="utf-8">         
+        <title>前100景点词云</title>         
+        <script src="https://d3js.org/d3.v6.min.js"></script>          
+        <script src="https://cdn.jsdelivr.net/npm/d3-cloud@1.2.5/build/d3.layout.cloud.js"></script>       
+        <style>  
+            #wordcloud-container {  
+                position: relative;  
+                width: 800px; 
+                height: 700px;  
+                margin: 50px auto;   
+            }  
+        </style> 
+    </head>        
+    <body>     
+        <div id="wordcloud-container"></div>   
+    </body>         
+    <script>          
+        d3.json('省市景点detail.json').then(function(data) {          
+            var top30Attractions = data      
+                .slice(0, 100)      
+                .filter(function(d) { return d.评论人数 > 0; })    
+                .map(function(d) {           
+                    return { text: d.景点名, size: d.评论人数, rank: +d.排名 };          
+                });            
+            top30Attractions.sort(function(a, b) { return a.rank - b.rank; });    
+            generateWordCloud(top30Attractions);          
+            function generateWordCloud(words) {          
+                var maxRank = d3.max(words, function(d) { return d.rank; });        
+                var minRank = d3.min(words, function(d) { return d.rank; });        
+
+                var fontSizeScale = d3.scaleLinear()    
+                    .domain([minRank, maxRank])   
+                    .range([150, 8]); 
+                var fill = d3.scaleSequential(d3.interpolateViridis)             
+                    .domain([minRank, maxRank]);       
+                var layout = d3.layout.cloud()          
+                    .size([800, 700])         
+                    .words(words)          
+                    .padding(0)          
+                    .rotate(function() { return ~~(Math.random() * 2) * 90; })          
+                    .font("Impact")           
+                    .fontSize(function(d) { return fontSizeScale(d.rank); }) 
+                    .on("end", draw);          
+                layout.start();          
+  
+                function draw(words) {          
+                    d3.select("#wordcloud-container").append("svg")          
+                        .attr("width", layout.size()[0])          
+                        .attr("height", layout.size()[1])          
+                    .append("g")          
+                        .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")          
+                    .selectAll("text")    
+                        .data(words)    
+                    .enter().append("text")    
+                        .style("font-size", function(d) { return fontSizeScale(d.rank) + "px"; })   
+                        .style("font-family", "Impact")          
+                        .style("fill", function(d) { return fill(d.rank); }) 
+                        .attr("text-anchor", "middle")          
+                        .attr("transform", function(d) {          
+                            return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";          
+                        })          
+                    .text(function(d) { return d.text; });          
+                }          
+            }        
+        }).catch(function(error) {          
+            console.error('Error loading data:', error);          
+        });        
+    </script>         
+</html>

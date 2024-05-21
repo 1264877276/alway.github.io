@@ -1,0 +1,106 @@
+<!DOCTYPE html>  
+<html>  
+<head>  
+    <title>各省平均票价柱状图</title>  
+    <style>  
+        html, body {  
+            height: 100%;  
+            margin: 0;  
+            display: flex;  
+            align-items: center;  
+            justify-content: center;  
+        }  
+        #chart-container {  
+            display: flex;  
+            flex-direction: column;  
+            align-items: center;  
+        }  
+    </style>  
+    <script src="https://d3js.org/d3.v6.min.js"></script>  
+</head>  
+<body>  
+    <div id="chart-container">  
+        <svg id="chart"></svg>  
+    </div> 
+</body>   
+    <script>  
+        d3.json("景点合集.json").then(function(data) {   
+           
+            let provinceAverages = {};  
+            data.forEach(function(d) {  
+                if (!provinceAverages[d.省份]) {  
+                    provinceAverages[d.省份] = {  
+                        totalTicketPrice: 0,  
+                        count: 0  
+                    };  
+                }  
+                provinceAverages[d.省份].totalTicketPrice += d.门票;  
+                provinceAverages[d.省份].count++;  
+            });  
+            for (let province in provinceAverages) {  
+                provinceAverages[province].averageTicketPrice = provinceAverages[province].totalTicketPrice / provinceAverages[province].count;  
+            }   
+            let chartData = [];  
+            for (let province in provinceAverages) {  
+                chartData.push({  
+                    省份: province,  
+                    平均票价: provinceAverages[province].averageTicketPrice  
+                });  
+            }   
+            chartData.sort(function(a, b) {  
+                return b.平均票价 - a.平均票价;  
+            });   
+            const colorScale = d3.scaleSequential()  
+                .domain([0, d3.max(chartData, d => d.平均票价)])  
+                .interpolator(d3.interpolateBlues); 
+            const width = 800;  
+            const height = 400;  
+            const margin = { top: 20, right: 20, bottom: 30, left: 40 };    
+            const svg = d3.select("#chart")  
+                .attr("width", width + margin.left + margin.right)  
+                .attr("height", height + margin.top + margin.bottom)  
+                .append("g")  
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");   
+            const x = d3.scaleBand()  
+                .range([0, width])  
+                .domain(chartData.map(d => d.省份)) 
+                .padding(0.1); 
+            svg.append("g")  
+                .attr("transform", "translate(0," + height + ")")  
+                .call(d3.axisBottom(x));  
+            svg.append("text")  
+                .attr("x", width / 2)
+                .attr("y", -margin.top /1000000) 
+                .attr("text-anchor", "middle") 
+                .attr("font-size", "23px") 
+                .attr("fill", "red")   
+                .text("全国各省4A5A景区平均票价");  
+            const y = d3.scaleLinear()  
+                .domain([0, d3.max(chartData, d => d.平均票价)])  
+                .range([height, 0]);  
+            svg.append("g")  
+                .call(d3.axisLeft(y));  
+            svg.selectAll(".bar")  
+                .data(chartData)  
+                .enter()  
+                .append("rect")  
+                .attr("class", "bar")  
+                .attr("x", d => x(d.省份))  
+                .attr("width", x.bandwidth())  
+                .attr("y", d => y(d.平均票价))  
+                .attr("height", d => height - y(d.平均票价))  
+                .attr("fill", d => colorScale(d.平均票价));
+                        svg.selectAll(".bar-label")  
+                            .data(chartData)  
+                            .enter()  
+                            .append("text")  
+                            .attr("class", "bar-label")  
+                            .attr("x", d => x(d.省份) + x.bandwidth() / 2)  
+                            .attr("y", d => y(d.平均票价) - 10)  
+                            .attr("text-anchor", "middle")  
+                            .attr("font-size", "10px") 
+                            .attr("fill", "black") 
+                            .text(d => d.平均票价.toFixed(1)); 
+                            });  
+    </script>  
+</html>
